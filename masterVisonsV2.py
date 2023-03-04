@@ -28,6 +28,11 @@ def locateTip(lX, lY, rX, rY, tX, tY, bX, bY, mean):
     array = sorted(array, key=lambda x: x[2])
     return array[3][0], array[3][1]
 
+def produceAngle(c1, c2):
+    a, b = c1
+    c, d = c2
+    return (math.cos((b-d) / math.sqrt((a-c)**2 + (b-d)**2)))*(180/np.pi)
+
 def main(argv): 
     frame = cv2.imread(r'coneStream.png')
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -40,14 +45,13 @@ def main(argv):
     x, y, w, h = cv2.boundingRect(mask)      
     mean = getAveragePostion(mask)
     tip = locateTip(x, np.argmax(mask[:, x]), x+w-1, np.argmax(mask[:, x+w-1]), np.argmax(mask[y, :]), y, np.argmax(mask[y+h-1, :]), y+h-1, getAveragePostion(mask))
-    
+    print(produceAngle(mean, tip))
+
     cv2.circle(res, mean, 8, (0,0,255), -1)
     cv2.circle(res, tip, 8, (0,0,255), -1)
     cv2.line(res, mean, tip, (0,0,255), 3, cv2.LINE_AA)
     
-    cv2.imshow('frame',frame)
-    cv2.imshow('mask',mask)
-    cv2.imshow("ResWithCenter", res)
+    cv2.imshow("Angle", res)
     cv2.waitKey()
     cv2.destroyAllWindows()
     return 0
