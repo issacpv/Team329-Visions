@@ -52,18 +52,24 @@ def main(argv):
     #bounds of the HSV
     lower_bound = np.array([0,90,0])
     upper_bound = np.array([50,255,255])
-
+    
+    #creates the mask (black and white) and the res (black and colored mask)
     mask = cv2.inRange(hsv, lower_bound, upper_bound)
     res = cv2.bitwise_and(frame, frame, mask=mask)
-    x, y, w, h = cv2.boundingRect(mask)      
+    #finds the fartest pixels
+    x, y, w, h = cv2.boundingRect(mask) 
+    #calculate mean
     mean = getAveragePostion(mask)
+    #finds and prints the angle that the cone's tip is at
     tip = locateTip(x, np.argmax(mask[:, x]), x+w-1, np.argmax(mask[:, x+w-1]), np.argmax(mask[y, :]), y, np.argmax(mask[y+h-1, :]), y+h-1, getAveragePostion(mask))
     print(produceAngle(mean, tip))
 
+    #draws the dots (for the mean and the cones tip) and line between them 
     cv2.circle(res, mean, 8, (0,0,255), -1)
     cv2.circle(res, tip, 8, (0,0,255), -1)
     cv2.line(res, mean, tip, (0,0,255), 3, cv2.LINE_AA)
     
+    #draws the picture
     cv2.imshow("Angle", res)
     cv2.waitKey()
     cv2.destroyAllWindows()
