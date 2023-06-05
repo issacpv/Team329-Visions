@@ -42,7 +42,7 @@ def removeQuad(arr):
     return arr    
 
 def main(argv):
-    default_file = r'C:\Users\vjoji\OneDrive\Pictures\coneMask.png'
+    default_file = r'C:\Users\*****\OneDrive\Pictures\coneMask.png'
     filename = argv[0] if len(argv) > 0 else default_file
     src = cv2.imread(cv2.samples.findFile(filename), cv2.IMREAD_GRAYSCALE)
     dst = cv2.Canny(src, 50, 200, None, 3)
