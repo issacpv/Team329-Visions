@@ -69,7 +69,7 @@ def restoreArray(arr):
 ##cv2.createTrackbar("UV", "Tracking", 255, 255, nothing)
 
 ##while(i < 500):
-frame = cv2.imread(r'C:\Users\vjoji\OneDrive\Pictures\cone.png')
+frame = cv2.imread(r'C:\Users\*****\OneDrive\Pictures\cone.png')
 hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
 ##l_h = cv2.getTrackbarPos("LH", "Tracking")
@@ -96,7 +96,7 @@ cv2.imshow('res',res)
     ##break
 
 def main(argv):
-    default_file = r'C:\Users\vjoji\OneDrive\Pictures\coneMask.png'
+    default_file = r'C:\Users\*****\OneDrive\Pictures\coneMask.png'
     filename = argv[0] if len(argv) > 0 else default_file
     src = cv2.imread(cv2.samples.findFile(filename), cv2.IMREAD_GRAYSCALE)
     dst = cv2.Canny(src, 50, 200, None, 3)
