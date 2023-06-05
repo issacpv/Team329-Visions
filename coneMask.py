@@ -15,7 +15,7 @@ cv2.createTrackbar("US", "Tracking", 255, 255, nothing)
 cv2.createTrackbar("UV", "Tracking", 255, 255, nothing)
 
 while(i < 500):
-    frame = cv2.imread(r'C:\Users\vjoji\OneDrive\Pictures\cone.png')
+    frame = cv2.imread(r'C:\Users\*****\OneDrive\Pictures\cone.png')
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
     l_h = cv2.getTrackbarPos("LH", "Tracking")
