@@ -1,88 +1,68 @@
-import sys
-import math
+import numpy as np
 import cv2
-import numpy as np  
+import sys
+import time
 
-#resolution of the picture / video stream
-height = 384
-width = 216
+ARUCO_DICT = {
+    "DICT_APRILTAG_36h11": cv2.aruco.DICT_APRILTAG_36h11
+}
 
-#finds the average position of pixels after the mask is applied, basically center of the object
-def getAveragePostion(mask):
-    xAvg = 0
-    yAvg = 0
-    count = 0
-    resolution = 24
-    #goes through every pixel and add all the x and y coodinates
-    for y in range(0, height, resolution):
-        for x in range (0, width, resolution):
-            if mask[x][y] == 0:
-                xAvg += x
-                yAvg += y
-                count += 1
-    #divides the total number by the amount of pixels counted to get avg coords
-    if count > 0:
-        x = int(xAvg / count)
-        y = int(yAvg / count)
-    return (x, y)
+def aruco_display(corners, ids, rejected, image):
+    if len(corners) > 0:
+        ids = ids.flatten()
+        for (markerCorner, markerID) in zip(corners, ids):
+            corners = markerCorner.reshape((4, 2))
+            (topLeft, topRight, bottomRight, bottomLeft) = corners
+            
+            topRight = (int(topRight[0]), int(topRight[1]))
+            bottomRight = (int(bottomRight[0]), int(bottomRight[1]))
+            bottomLeft = (int(bottomLeft[0]), int(bottomLeft[1]))
+            topLeft = (int(topLeft[0]), int(topLeft[1]))
 
-#takes the farthest left(l), rigth(r), top(t) and bottom(b) pixels of the mask and caluculates which one is farthest from the mean 
-def locateTip(lX, lY, rX, rY, tX, tY, bX, bY, mean):
-    #splits the (x,y) of the mean
-    mX, mY = mean
-    #creates a 2d array to store the coords and the length in the format [x][y][distance from mean]    
-    array = [[lX, lY, math.sqrt((mX-lX)**2 + (mY-lY)**2)], [rX, rY, math.sqrt((mX-rX)**2 + (mY-rY)**2)], [tX, tY, math.sqrt((mX-tX)**2 + (mY-tY)**2)], [bX, bY, math.sqrt((mX-bX)**2 + (mY-bY)**2)]]
-    #sorts teh array by the distance from the mean
-    array = sorted(array, key=lambda x: x[2])
-    #returns the last one (farthest from the mean aka the tip)
-    return array[3][0], array[3][1]
+            cv2.line(image, topLeft, topRight, (0, 255, 0), 2)
+            cv2.line(image, topRight, bottomRight, (0, 255, 0), 2)
+            cv2.line(image, bottomRight, bottomLeft, (0, 255, 0), 2)
+            cv2.line(image, bottomLeft, topLeft, (0, 255, 0), 2)
+            
+            cX = int((topLeft[0] + bottomRight[0]) / 2.0)
+            cY = int((topLeft[1] + bottomRight[1]) / 2.0)
+            cv2.circle(image, (cX, cY), 4, (0, 0, 255), -1)
+            
+            cv2.putText(image, str(markerID),(topLeft[0], topLeft[1] - 10), cv2.FONT_HERSHEY_SIMPLEX,
+                0.5, (0, 255, 0), 2)
+            print("[Inference] ArUco marker ID: {}".format(markerID))
+    return image
 
-#locates the angle the ip is at given the coordinates of the farthest and the mean
-def produceAngle(c1, c2):   
-    a, b = c1
-    c, d = c2
-    return (math.cos((b-d) / math.sqrt((a-c)**2 + (b-d)**2)))*(180/np.pi)
+def pose_estimation(frame, aruco_dict_type, matrix_coefficients, distortion_coefficients):
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    cv2.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_36h11)
+    parameters = arucoParams = cv2.aruco.DetectorParameters()
+    detector = cv2.aruco.ArucoDetector(cv2.aruco_dict, parameters)
+    corners, ids, rejected_img_points = detector.detectMarkers(frame)
+    if len(corners) > 0:
+        for i in range(0, len(ids)):
+            rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(corners[i], 0.02, matrix_coefficients,
+                                                                       distortion_coefficients)
+            cv2.aruco.drawDetectedMarkers(frame, corners) 
+            cv2.drawFrameAxes(frame, matrix_coefficients, distortion_coefficients, rvec, tvec, 0.01)  
+    return frame
+ 
+dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_36h11)
+arucoParams = cv2.aruco.DetectorParameters()
+intrinsic_camera = np.array(((933.15867, 0, 657.59),(0,933.1586, 400.36993),(0,0,1)))
+distortion = np.array((-0.43948,0.18514,0,0))
 
-def main(argv): 
-    #bounds of the HSV
-    lower_bound = np.array([0,90,0])
-    upper_bound = np.array([50,255,255])
+cap = cv2.VideoCapture(0)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
-    vidcap = cv2.VideoCapture(r'C:\Users\vjoji\Downloads\coneStream.mov')
-    success,frame = vidcap.read()
-    c = 0
+while cap.isOpened():
+    ret, img = cap.read()
+    output = pose_estimation(img, cv2.aruco.DICT_APRILTAG_36h11, intrinsic_camera, distortion)
+    cv2.imshow('Estimated Pose', output)
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord('q'):
+        break
 
-    while success:
-        c += 1
-        #stream / picture being analyzed
-        success,frame = vidcap.read()        
-        frame = cv2.resize(frame, None, fx = 0.1, fy = 0.1)
-        cv2.imwrite('savedImage.jpg', frame)
-        #converts the image
-        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        #creates the mask (black and white) and the res (black and colored mask)
-        mask = cv2.inRange(hsv, lower_bound, upper_bound)
-        print(len(mask))
-        print(len(mask[0]))
-        res = cv2.bitwise_and(frame, frame, mask=mask)
-        #finds the fartest pixels
-        x, y, w, h = cv2.boundingRect(mask) 
-        #calculate mean
-        mean = getAveragePostion(mask)
-        print(mean)
-        #finds and prints the angle that the cone's tip is at
-        tip = locateTip(x, np.argmax(mask[:, x]), x+w-1, np.argmax(mask[:, x+w-1]), np.argmax(mask[y, :]), y, np.argmax(mask[y+h-1, :]), y+h-1, getAveragePostion(mask))
-        print(produceAngle(mean, tip))
-
-        cv2.circle(res, mean, 8, (0,0,255), -1)
-        ##cv2.circle(res, tip, 8, (0,0,255), -1)
-        ##cv2.line(res, mean, tip, (0,0,255), 3, cv2.LINE_AA)
-
-        if c % 10 == 0:
-            cv2.imshow("Angle", res)
-            cv2.waitKey(300)
-            cv2.destroyAllWindows()
-    return 0
-
-if __name__ == "__main__":
-    main(sys.argv[1:])
+cap.release()
+cv2.destroyAllWindows()
