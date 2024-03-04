@@ -1,7 +1,10 @@
 import cv2 as cv
 from cv2 import aruco
 import numpy as np
+import time
+import math
 
+start_time = time.time()
 calib_data_path = "/home/issacpv/project/calib_data/MultiMatrix.npz"
 
 calib_data = np.load(calib_data_path)
@@ -12,11 +15,13 @@ dist_coef = calib_data["distCoef"]
 r_vectors = calib_data["rVector"]
 t_vectors = calib_data["tVector"]
 
-MARKER_SIZE = 12.1  # centimeters
+MARKER_SIZE = 3.5  # centimeters
 
 marker_dict = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_APRILTAG_36h11)
 param_markers = cv.aruco.DetectorParameters()
 cap = cv.VideoCapture(0)
+cap.set(cv.CAP_PROP_FRAME_WIDTH, 640)
+cap.set(cv.CAP_PROP_FRAME_HEIGHT, 360)
 
 while True:
     ret, frame = cap.read()
@@ -37,6 +42,17 @@ while True:
             )
             corners = corners.reshape(4, 2)
             corners = corners.astype(int)
+            
+            (topLeft, topRight, bottomRight, bottomLeft) = corners
+            topRight = (int(topRight[0]), int(topRight[1]))
+            bottomRight = (int(bottomRight[0]), int(bottomRight[1]))
+            bottomLeft = (int(bottomLeft[0]), int(bottomLeft[1]))
+            topLeft = (int(topLeft[0]), int(topLeft[1]))
+            cX = int((topLeft[0] + bottomRight[0]) / 2.0)
+            cY = int((topLeft[1] + bottomRight[1]) / 2.0)
+            print("\nResult...",(((320-cX)/360*78)-2)/2)
+            print("--- %s seconds ---" % (time.time() - start_time))
+            
             top_right = corners[0].ravel()
             top_left = corners[1].ravel()
             bottom_right = corners[2].ravel()
@@ -70,6 +86,8 @@ while True:
                 2,
                 cv.LINE_AA,
             )
+            cv.line(frame, (320,0), (320, 360), (0,0,255), 3, cv.LINE_AA)
+            cv.line(frame, (320,360), (0, 40), (0,0,255), 3, cv.LINE_AA)
             # print(ids, "  ", corners)
     cv.imshow("frame", frame)
     key = cv.waitKey(1)
