@@ -15,7 +15,7 @@ dist_coef = calib_data["distCoef"]
 r_vectors = calib_data["rVector"]
 t_vectors = calib_data["tVector"]
 
-MARKER_SIZE = 3.5  # centimeters
+MARKER_SIZE = 9.0	  # centimeters
 
 marker_dict = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_APRILTAG_36h11)
 param_markers = cv.aruco.DetectorParameters()
@@ -35,13 +35,17 @@ while True:
         rVec, tVec, _ = aruco.estimatePoseSingleMarkers(
             marker_corners, MARKER_SIZE, cam_mat, dist_coef
         )
-        total_markers = range(0, marker_IDs.size)
+        total_markers = range(0, marker_IDs.size)            
         for ids, corners, i in zip(marker_IDs, marker_corners, total_markers):
             cv.polylines(
                 frame, [corners.astype(np.int32)], True, (0, 255, 255), 4, cv.LINE_AA
             )
             corners = corners.reshape(4, 2)
-            corners = corners.astype(int)
+            corners = corners.astype(int)            
+            top_right = corners[0].ravel()
+            top_left = corners[1].ravel()
+            bottom_right = corners[2].ravel()
+            bottom_left = corners[3].ravel()
             
             (topLeft, topRight, bottomRight, bottomLeft) = corners
             topRight = (int(topRight[0]), int(topRight[1]))
@@ -49,21 +53,18 @@ while True:
             bottomLeft = (int(bottomLeft[0]), int(bottomLeft[1]))
             topLeft = (int(topLeft[0]), int(topLeft[1]))
             cX = int((topLeft[0] + bottomRight[0]) / 2.0)
-            cY = int((topLeft[1] + bottomRight[1]) / 2.0)
-            print("\nResult...",(((320-cX)/360*78)-2)/2)
+            
+            print((cX-360)/360*70)
             print("--- %s seconds ---" % (time.time() - start_time))
             
-            top_right = corners[0].ravel()
-            top_left = corners[1].ravel()
-            bottom_right = corners[2].ravel()
-            bottom_left = corners[3].ravel()
-
+            cv.line(frame, (320,0), (320, 360), (0,0,255), 3, cv.LINE_AA)
             # Since there was mistake in calculating the distance approach point-outed in the Video Tutorial's comment
             # so I have rectified that mistake, I have test that out it increase the accuracy overall.
             # Calculating the distance
             distance = np.sqrt(
                 tVec[i][0][2] ** 2 + tVec[i][0][0] ** 2 + tVec[i][0][1] ** 2
             )
+            print(distance)
             # Draw the pose of the marker
             point = cv.drawFrameAxes(frame, cam_mat, dist_coef, rVec[i], tVec[i], 4, 4)
             cv.putText(
@@ -86,8 +87,6 @@ while True:
                 2,
                 cv.LINE_AA,
             )
-            cv.line(frame, (320,0), (320, 360), (0,0,255), 3, cv.LINE_AA)
-            cv.line(frame, (320,360), (0, 40), (0,0,255), 3, cv.LINE_AA)
             # print(ids, "  ", corners)
     cv.imshow("frame", frame)
     key = cv.waitKey(1)
