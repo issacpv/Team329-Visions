@@ -3,7 +3,22 @@ from cv2 import aruco
 import numpy as np
 import time
 import math
+import socket
+from pathlib import Path
 
+#print("Pi Started Pi NetworkTables")
+#while 1:
+#    try:
+#       ip = socket.gethostbyname('roboRIO-329-FRC.local')
+#       connected = True
+#       print("Network connected")
+#       break
+#    except:
+#        print("Waiting for Roborio and NWT connection")
+#        time.sleep(1)
+#       connected = False
+#        pass
+    
 start_time = time.time()
 calib_data_path = "/home/issacpv/project/calib_data/MultiMatrix.npz"
 
@@ -25,6 +40,9 @@ cap.set(cv.CAP_PROP_FRAME_HEIGHT, 360)
 
 while True:
     ret, frame = cap.read()
+    with open('/home/issacpv/project/log.txt','w') as save_file:
+        line = "time=%s" % (time.time() - start_time)
+        save_file.write(line)
     if not ret:
         break
     gray_frame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
@@ -53,10 +71,6 @@ while True:
             bottomLeft = (int(bottomLeft[0]), int(bottomLeft[1]))
             topLeft = (int(topLeft[0]), int(topLeft[1]))
             cX = int((topLeft[0] + bottomRight[0]) / 2.0)
-            
-            print((cX-360)/360*70)
-            print("--- %s seconds ---" % (time.time() - start_time))
-            
             cv.line(frame, (320,0), (320, 360), (0,0,255), 3, cv.LINE_AA)
             # Since there was mistake in calculating the distance approach point-outed in the Video Tutorial's comment
             # so I have rectified that mistake, I have test that out it increase the accuracy overall.
@@ -65,6 +79,8 @@ while True:
                 tVec[i][0][2] ** 2 + tVec[i][0][0] ** 2 + tVec[i][0][1] ** 2
             )
             print(distance)
+            print((cX-360)/360*70)
+            print((time.time() - start_time))
             # Draw the pose of the marker
             point = cv.drawFrameAxes(frame, cam_mat, dist_coef, rVec[i], tVec[i], 4, 4)
             cv.putText(
